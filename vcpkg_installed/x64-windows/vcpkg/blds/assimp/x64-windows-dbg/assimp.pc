@@ -1,9 +1,0 @@
-libdir=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/assimp_x64-windows/debug/lib
-includedir=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/assimp_x64-windows/debug/include
-
-Name: Assimp
-Description: Import various well-known 3D model formats in an uniform manner.
-Version: 5.4.3
-Libs: -L${libdir} -lassimp
-Libs.private:  
-Cflags: -I${includedir}

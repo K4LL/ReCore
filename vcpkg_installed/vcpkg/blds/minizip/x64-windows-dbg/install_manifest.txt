@@ -1,7 +1,0 @@
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/lib/minizip.lib
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/bin/minizip.dll
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/share/unofficial-minizip/unofficial-minizipConfig.cmake
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/share/unofficial-minizip/unofficial-minizipConfigVersion.cmake
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/share/unofficial-minizip/unofficial-minizipTargets.cmake
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/share/unofficial-minizip/unofficial-minizipTargets-debug.cmake
-C:/Users/gupue/source/repos/ReCore/vcpkg_installed/vcpkg/pkgs/minizip_x64-windows/debug/lib/pkgconfig/minizip.pc
