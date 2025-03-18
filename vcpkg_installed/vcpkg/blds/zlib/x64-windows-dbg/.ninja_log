@@ -1,0 +1,20 @@
+# ninja log v5
+4	238	7607514801667328	CMakeFiles/zlib.dir/compress.c.obj	a5673f0aa47b0213
+2	240	7607514801677271	CMakeFiles/zlib.dir/adler32.c.obj	600f7ed6f77354ff
+42	253	7607514801777002	CMakeFiles/zlib.dir/uncompr.c.obj	774831af68f4c37e
+30	264	7607514801906660	CMakeFiles/zlib.dir/inftrees.c.obj	3b59cfa9e751e752
+6	269	7607514801956521	CMakeFiles/zlib.dir/crc32.c.obj	d253085522d29a5c
+8	273	7607514801986449	CMakeFiles/zlib.dir/deflate.c.obj	e94208565fa367ac
+37	279	7607514802076213	CMakeFiles/zlib.dir/trees.c.obj	7f346eeeefb0770b
+33	291	7607514802225802	CMakeFiles/zlib.dir/inffast.c.obj	1706be51dbdc8a1a
+46	322	7607514802515035	CMakeFiles/zlib.dir/zutil.c.obj	a71ee5b5ada0dc66
+26	323	7607514802495077	CMakeFiles/zlib.dir/infback.c.obj	69613491a326064d
+10	323	7607514802515035	CMakeFiles/zlib.dir/gzclose.c.obj	1fbb9d5e0dda7c35
+15	324	7607514802554963	CMakeFiles/zlib.dir/gzread.c.obj	81f2dfa57261e133
+12	324	7607514802544946	CMakeFiles/zlib.dir/gzlib.c.obj	6d1b4e1644ad78bf
+19	325	7607514802554963	CMakeFiles/zlib.dir/gzwrite.c.obj	22ab056e62f3f281
+22	333	7607514802644682	CMakeFiles/zlib.dir/inflate.c.obj	49f5767ee0b2415c
+50	349	7607514802794278	CMakeFiles/zlib.dir/win32/zlib1.rc.res	da0639c77942e621
+349	779	7607514806804810	zlibd1.dll	5424304e6b95f5c8
+349	779	7607514806804810	zlibd.lib	5424304e6b95f5c8
+779	819	0	CMakeFiles/install.util	c2396ed3bfdc64e8

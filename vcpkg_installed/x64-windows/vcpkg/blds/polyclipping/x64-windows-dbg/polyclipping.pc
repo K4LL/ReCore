@@ -1,0 +1,13 @@
+prefix=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/debug
+exec_prefix=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/debug
+libdir=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/debug/lib
+sharedlibdir=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/debug/lib
+includedir=C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/debug/include/polyclipping
+
+Name: polyclipping
+Description: polygon clipping library
+Version: 
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lpolyclipping
+Cflags: -I${includedir}

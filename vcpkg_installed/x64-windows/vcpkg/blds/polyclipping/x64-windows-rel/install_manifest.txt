@@ -1,0 +1,6 @@
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/include/polyclipping/clipper.hpp
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/lib/polyclipping.lib
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/share/pkgconfig/polyclipping.pc
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/lib/polyclipping.lib
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/share/polyclipping/polyclippingConfig.cmake
+C:/Users/gupue/source/repos/ReCore/vcpkg_installed/x64-windows/vcpkg/pkgs/polyclipping_x64-windows/share/polyclipping/polyclippingConfig-release.cmake

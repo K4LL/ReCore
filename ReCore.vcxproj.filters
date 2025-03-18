@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Arquivos de Origem">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Arquivos de Cabeçalho">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="STB">
+      <UniqueIdentifier>{c8414986-fd4a-405c-ad02-21e167733449}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGuiImpl">
+      <UniqueIdentifier>{4e6a7420-2f7c-4f92-b40c-3d1189799474}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Arquivos de Recurso">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Arquivos de Cabeçalho\Core">
+      <UniqueIdentifier>{3979a2f2-b4fa-4d2e-9c7c-ba61994bdc7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Arquivos de Origem\Core">
+      <UniqueIdentifier>{25f04166-5bbd-4116-af30-e985c3ef4e37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework">
+      <UniqueIdentifier>{df06da96-8c9c-40b8-8fb2-319bc4feb5e9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Time.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>STB</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalLight.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="vcpkg.json" />
+    <ClInclude Include="ReObjects.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GuiManager.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectX11Types.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectX11Handler.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Window.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugConsole.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="FlexibleVector.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadPool.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineCore.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager.h">
+      <Filter>Arquivos de Cabeçalho\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Time.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="World Engine.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_image.cpp">
+      <Filter>STB</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\imgui.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\imgui_draw.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\imgui_tables.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\imgui_widgets.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\backends\imgui_impl_dx11.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Dependencies\imgui-1.91.7\backends\imgui_impl_win32.cpp">
+      <Filter>ImGuiImpl</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="GuiManager.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Meta.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ReObjects.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="InputManager.cpp">
+      <Filter>Arquivos de Origem\Core</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
