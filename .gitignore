@@ -485,3 +485,7 @@ vcpkg_installed
 CONERR$
 Resources
 *.png
+*.ini
+main.cpp
+World Engine.cpp
+World Engine.cpp

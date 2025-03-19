@@ -33,7 +33,7 @@ private:
 	std::condition_variable assignmentCv;
 	std::mutex              assignmentMtx;
 
-	size_t threadsAmmount;
+	size_t threadsAmount;
 	size_t finishedThreads;
 
 	bool shouldExit;
@@ -73,7 +73,7 @@ private:
 	}
 
 public:
-	ThreadPool() : shouldExit(false), threadsAmmount(0), finishedThreads(0) {}
+	ThreadPool() : shouldExit(false), threadsAmount(0), finishedThreads(0) {}
 
 	~ThreadPool() {
 		{
@@ -84,25 +84,25 @@ public:
 
 		{
 			std::unique_lock<std::mutex> lock(this->assignmentMtx);
-			this->assignmentCv.wait(lock, [this]() { return finishedThreads >= threadsAmmount; });
+			this->assignmentCv.wait(lock, [this]() { return finishedThreads >= threadsAmount; });
 		}
 	}
 
-	void build(const size_t threadsAmmount) {
+	void build(const size_t threadsAmount) {
 		this->tasks.build<Callable>();
-		this->tasks.reserve<Callable>(threadsAmmount);
+		this->tasks.reserve<Callable>(threadsAmount);
 
-		this->threadsAmmount = threadsAmmount;
+		this->threadsAmount = threadsAmount;
 
-		for (int i = 0; i < threadsAmmount; i++) {
+		for (int i = 0; i < threadsAmount; i++) {
 			this->createThread();
 		}
 	}
 
 	template <typename Fn, typename... Args>
-	[[nodiscard]] ThreadGroup* scheduleWork(const size_t threadsAmmount, Fn&& task, Args&&... args) {
+	[[nodiscard]] ThreadGroup* scheduleWork(const size_t threadsAmount, Fn&& task, Args&&... args) {
 		ThreadGroup* group = new ThreadGroup;
-		group->neededThreads = threadsAmmount;
+		group->neededThreads = threadsAmount;
 		group->finishedThreads.store(0);
 
 		auto wrapper = [task = std::forward<Fn>(task), ...args = std::forward<Args>(args), group]() mutable {
@@ -111,19 +111,19 @@ public:
 			group->finishedThreads.notify_all();
 			};
 
-		for (int i = 0; i < threadsAmmount; i++) {
+		for (int i = 0; i < threadsAmount; i++) {
 			this->scheduleWorkImpl(wrapper);
 		}
 
 		return group;
 	}
 	template <typename Fn, typename... Args>
-	[[nodiscard]] ThreadGroup* scheduleWorkIndexed(const size_t threadsAmmount, Fn&& task, Args&&... args) {
+	[[nodiscard]] ThreadGroup* scheduleWorkIndexed(const size_t threadsAmount, Fn&& task, Args&&... args) {
 		ThreadGroup* group = new ThreadGroup;
-		group->neededThreads = threadsAmmount;
+		group->neededThreads = threadsAmount;
 		group->finishedThreads.store(0);
 
-		for (int i = 0; i < threadsAmmount; i++) {
+		for (int i = 0; i < threadsAmount; i++) {
 			auto wrapper = [task = std::forward<Fn>(task), ...args = std::forward<Args>(args), i, group]() mutable {
 				task(i, args...);
 				group->finishedThreads.fetch_add(1, std::memory_order_release);

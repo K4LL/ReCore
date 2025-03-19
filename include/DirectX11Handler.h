@@ -5,6 +5,8 @@
 
 #include "Window.h"
 
+#include <format>
+
 struct FrameData {
     DirectX::XMMATRIX model;
     DirectX::XMMATRIX view;

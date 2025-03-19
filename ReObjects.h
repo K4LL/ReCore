@@ -1,5 +1,4 @@
 #pragma once
-#include <cstddef>
 #include <typeindex>
 
 #include "FlexibleVector.h"
@@ -77,10 +76,10 @@ private:
     ThreadPool threads;
 
 public:
-    void build(const size_t initialSize, const size_t threadsAmmount) {
+    void build(const size_t initialSize, const size_t threadsAmount) {
         this->storage.reserve(initialSize);
 
-        this->threads.build(threadsAmmount);
+        this->threads.build(threadsAmount);
     }
 
     template <typename Ty, typename = std::enable_if_t<std::is_copy_constructible_v<Ty>>>

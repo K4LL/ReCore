@@ -2,7 +2,7 @@
 #include <iostream>
 #include <Windows.h>
 
-class Time {
+class RCTime {
 private:
 	static float currentTime;
 	static float lastTime;

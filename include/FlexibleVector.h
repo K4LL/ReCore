@@ -1,11 +1,12 @@
 #pragma once
 #include "framework.h"
 
-#include <cstddef>
 #include <memory>
 #include <algorithm>
 #include <typeindex>
 #include <type_traits>
+
+#include <format>
 
 template <typename Allocator = std::allocator<unsigned char>>
 class FlexibleVector {

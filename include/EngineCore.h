@@ -5,6 +5,7 @@
 #include "GuiManager.h"
 #include "Time.h"
 #include "InputManager.h"
+#include "DebugConsole.h"
 
 struct WindowDescription {
 	const wchar_t* windowName;
@@ -78,11 +79,11 @@ public:
 				}
 
 				startTime = std::chrono::high_resolution_clock::now();
-				Time::startUpdate();
+				RCTime::startUpdate();
 
 				updateFunction();
 
-				Time::endUpdate();
+				RCTime::endUpdate();
 				endTime = std::chrono::high_resolution_clock::now();
 			}
 		};

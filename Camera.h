@@ -83,8 +83,8 @@ public:
 				POINT currentMousePos;
 				GetCursorPos(&currentMousePos);
 
-				float deltaX = ((currentMousePos.x - lastMousePos.x) * lookSpeed) * Time::deltaTime();
-				float deltaY = ((currentMousePos.y - lastMousePos.y) * lookSpeed) * Time::deltaTime();
+				float deltaX = ((currentMousePos.x - lastMousePos.x) * lookSpeed) * RCTime::deltaTime();
+				float deltaY = ((currentMousePos.y - lastMousePos.y) * lookSpeed) * RCTime::deltaTime();
 				lastMousePos = currentMousePos;
 
 				this->eulerAngles.yaw   += deltaX;
@@ -119,37 +119,37 @@ public:
 		if (GetAsyncKeyState('W') & 0x8000) {
 			this->transform.position = DirectX::XMVectorAdd(
 				this->transform.position,
-				DirectX::XMVectorScale(forward, speed * Time::deltaTime())
+				DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
 			);
 		}		
 		if (GetAsyncKeyState('S') & 0x8000) {
 			this->transform.position = DirectX::XMVectorSubtract(
 				this->transform.position,
-				DirectX::XMVectorScale(forward, speed * Time::deltaTime())
+				DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
 			);
 		}		
 		if (GetAsyncKeyState('A') & 0x8000) {
 			this->transform.position = DirectX::XMVectorAdd(
 				this->transform.position,
-				DirectX::XMVectorScale(right, speed * Time::deltaTime())
+				DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
 			);
 		}		
 		if (GetAsyncKeyState('D') & 0x8000) {
 			this->transform.position = DirectX::XMVectorSubtract(
 				this->transform.position,
-				DirectX::XMVectorScale(right, speed * Time::deltaTime())
+				DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
 			);
 		}		
 		if (GetAsyncKeyState('E') & 0x8000) {
 			this->transform.position = DirectX::XMVectorAdd(
 				this->transform.position,
-				DirectX::XMVectorScale(this->upVector, speed * Time::deltaTime())
+				DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
 			);
 		}		
 		if (GetAsyncKeyState('Q') & 0x8000) {
 			this->transform.position = DirectX::XMVectorSubtract(
 				this->transform.position,
-				DirectX::XMVectorScale(this->upVector, speed * Time::deltaTime())
+				DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
 			);
 		}	
 		if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) {

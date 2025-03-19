@@ -7,6 +7,8 @@
 #include <share.h>
 #include <sys/stat.h>
 
+#include <format>
+
 struct ModelMeta {
 	std::string texturePath;
 	std::string modelPath;

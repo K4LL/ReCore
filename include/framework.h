@@ -8,9 +8,9 @@
 #include "backends/imgui_impl_win32.h"
 
 #include <d3d11.h>
+#include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <DirectXColors.h>
-#include <DirectXMath.h>
 
 #include <wrl/client.h>
 
@@ -28,9 +28,7 @@
 #include <functional>
 #include <variant>
 
-#include "Time.h"
-
-#include "format"
+#include "RCTime.h"
 
 #ifdef _DEBUG
 #define RC_I_FL_HELPER "(" << __FILE__ << ":" << __LINE__ << ")" 
