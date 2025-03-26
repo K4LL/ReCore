@@ -94,10 +94,10 @@ Texture Renderer::createTexture(const char* path) {
 }
 
 Model Renderer::createModel(std::vector<Vertex>& vertices,
-							std::vector<DWORD>& indices,
-							const char*			vertexShaderSource,
-							const char*		    pixelShaderSource,
-							const char*			texturePath)
+	std::vector<DWORD>& indices,
+	const char* vertexShaderSource,
+	const char* pixelShaderSource,
+	const char* texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
 	Mesh    mesh = this->handler->createVertexArrayBuffer(vertices, indices);
@@ -120,20 +120,39 @@ Model Renderer::createModel(const char* path,
 	Texture tex = this->createTexture(texturePath);
 
 
-	Model model = {};
-	model.mesh = std::move(mesh);
-	model.shader = std::move(shader);
+	Model model   = {};
+	model.mesh    = std::move(mesh);
+	model.shader  = std::move(shader);
 	model.texture = std::move(tex);
 
 	return model;
 }
 
+Model Renderer::getTemplate(const ModelTemplate t, void* params, const char* additionalVS, const char* additionalPS) {
+	switch (t)
+	{
+	case ModelTemplate::Billboard: {
+		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
+		Model model                = this->createModel(desc->modelPath, std::format("", additionalVS).c_str(), std::format("", additionalPS).c_str(), desc->texturePath);
+		
+		model.buffers.push_back(this->handler->createConstantBuffer<DirectX::XMVECTOR>(nullptr));
+
+		return model;
+	}
+
+	default: {
+		Model model = {};
+		return model;
+	}
+	}
+}
+
 void Renderer::createGlobalLight() {
 	GlobalLight globalLight = {};
-	globalLight.ambient = DirectX::XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	globalLight.lightColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	globalLight.direction = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
-	globalLight.intensity = 1.0f;
+	globalLight.ambient     = DirectX::XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	globalLight.lightColor  = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	globalLight.direction   = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
+	globalLight.intensity   = 1.0f;
 
 	this->scene.globalLightData = globalLight;
 	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightData);
@@ -187,7 +206,7 @@ void Renderer::render() {
 			scaleBuffer.buffer,
 		};
 		for (int j = 0; j < model.get()->buffers.size(); j++) {
-			lightBuffer.push_back(model.get()->buffers[j]);
+			lightBuffer.push_back(model.get()->buffers[j].buffer);
 		}
 		this->handler->PSBindBuffers(lightBuffer);
 

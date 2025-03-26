@@ -4,7 +4,7 @@ float RCTime::currentTime = 0.0f;
 float RCTime::lastTime    = 0.0f;
 
 void RCTime::startUpdate() {
-	RCTime::currentTime = GetTickCount();
+	RCTime::currentTime = GetTickCount64();
 }
 void RCTime::endUpdate() {
 	RCTime::lastTime = RCTime::currentTime;
