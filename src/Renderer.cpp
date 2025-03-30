@@ -128,17 +128,109 @@ Model Renderer::createModel(const char* path,
 	return model;
 }
 
-Model Renderer::getTemplate(const ModelTemplate t, void* params, const char* additionalVS, const char* additionalPS) {
+Model Renderer::getTemplate(const ModelTemplate t, void* params) {
 	switch (t)
 	{
-	case ModelTemplate::Billboard: {
-		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
-		Model model                = this->createModel(desc->modelPath, additionalVS, additionalPS, desc->texturePath);
+	case ModelTemplate::Billboard: { 
+		const char* BillboardVertexShaderSource = R"(
+		// Some code i got from chatgpt
+		cbuffer FrameData : register(b0) {
+			matrix model;
+			matrix view;
+			matrix projection;
+		};
+		cbuffer CameraRotation : register(b1) {
+			float4 qCameraRotation;
+		};
 
-		auto* p = &this->camera->transform.rotation;
-		model.buffers.push_back(this->handler->createConstantBuffer<DirectX::XMVECTOR>(p));
-		model.buffers.back().name  = "cameraRotation";
-		model.buffers.back().stage = PipelineStage::VertexStage;
+		struct VSInput {
+			float3 position : POSITION;
+			float3 normal   : NORMAL;
+			float2 texCoords: TEXCOORD;
+		};
+
+		struct PSInput {
+			float4 position : SV_POSITION;
+			float3 normal   : NORMAL;
+			float2 texCoords: TEXCOORD;
+		};
+
+		PSInput VSMain(VSInput input) {
+			PSInput output;
+
+			// The billboard center is assumed to be stored in model[3].xyz.
+			float3 billboardCenter = model[3].xyz;
+
+			// Convert the camera rotation quaternion into right and up vectors.
+			// Note: Ensure the quaternion is normalized.
+			float x = qCameraRotation.x;
+			float y = qCameraRotation.y;
+			float z = qCameraRotation.z;
+			float w = qCameraRotation.w;
+    
+			// Compute the right vector from the quaternion.
+			float3 camRight = float3(
+				1.0f - 2.0f * (y * y + z * z),
+				2.0f * (x * y + w * z),
+				2.0f * (x * z - w * y)
+			);
+
+			// Compute the up vector from the quaternion.
+			float3 camUp = float3(
+				2.0f * (x * y - w * z),
+				1.0f - 2.0f * (x * x + z * z),
+				2.0f * (y * z + w * x)
+			);
+
+			// Calculate the local offset using the scale (assumed to be set to the billboard half-size)
+			float3 localOffset = input.position;
+
+			// Construct the billboard world position by offsetting the center along camera axes.
+			float3 billboardPos = billboardCenter + camRight * localOffset.x + camUp * localOffset.y;
+
+			// Transform the billboard position to clip space.
+			float4 worldPos = float4(billboardPos, 1.0f);
+			output.position = mul(mul(worldPos, view), projection);
+
+			output.normal    = input.normal;
+			output.texCoords = input.texCoords;
+			return output;
+		}
+		)";
+		const char* BillboardPixelShaderSource = R"(
+			Texture2D tex : register(t0);
+			SamplerState samplerState : register(s0);
+
+			cbuffer LightBuffer : register(b0) {
+			float3 direction;
+
+			float4 ambient;
+			float4 lightColor;
+
+			float intensity;
+		}
+
+		cbuffer Scale : register(b1) {
+			float3 scale;
+		}
+
+		struct PSInput {
+			float4 position : SV_POSITION;
+			float3 normal : NORMAL;
+			float2 texCoords : TEXCOORD;
+		};
+
+		float4 PSMain(PSInput input) : SV_TARGET {
+			float4 texColor = tex.Sample(samplerState, input.texCoords);
+			return texColor;
+		}
+		)";
+
+		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
+		Model model                = this->createModel(desc->modelPath, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+
+		auto& p = this->camera->transform.rotation;
+		this->createBuffer<DirectX::XMVECTOR>(&model, PipelineStage::VertexStage, p, "cameraRotation");
 
 		return model;
 	}
@@ -190,8 +282,8 @@ void Renderer::render() {
 		fm.model      = DirectX::XMMatrixTranspose(transform.model);
 		fm.projection = DirectX::XMMatrixTranspose(this->camera->projectionMatrix);
 		fm.view       = DirectX::XMMatrixTranspose(this->camera->viewMatrix);
-
 		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(&fm);
+
 		struct AlignedScale {
 			DirectX::XMFLOAT3 scale;
 			float             padding = 0.0f;
@@ -201,9 +293,8 @@ void Renderer::render() {
 		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(&ascale);
 
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
-		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer, };
+		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer };
 
-		VSBuffers.reserve(model.get()->buffers.size());
 		for (uint32_t i = 0; i < model.get()->buffers.size(); i++) {
 			if (model.get()->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(model.get()->buffers[i].buffer);
 			else PSBuffers.push_back(model.get()->buffers[i].buffer);

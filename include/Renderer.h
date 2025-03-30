@@ -85,7 +85,7 @@ public:
 					  const char* pixelShaderSource,
 					  const char* texturePath);
 
-	Model getTemplate(const ModelTemplate t, void* params, const char* additionalVS, const char* additionalPS);
+	Model getTemplate(const ModelTemplate t, void* params);
 
 	template <typename Ty>
 	void createBuffer(Model* bufferParent, const PipelineStage stage, Ty& bufferData, std::string name = "") {
