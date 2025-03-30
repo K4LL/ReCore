@@ -416,6 +416,8 @@ public:
         HRESULT hr;
 
         Buffer cbuffer = {};
+		cbuffer.type   = typeid(StructType);
+
         D3D11_BUFFER_DESC cbufferDesc   = {};
         cbufferDesc.Usage               = D3D11_USAGE_DYNAMIC;          // Default usage (GPU read-only)
         cbufferDesc.ByteWidth           = sizeof(StructType);           // Size of the constant buffer
@@ -433,6 +435,15 @@ public:
         RC_EI_ASSERT(FAILED(hr), "Failed to create constant buffer.");
         
         return cbuffer;
+    }
+    template <typename StructType>
+    void updateConstantBuffer(Buffer* buff, StructType* data) {
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		this->context->Map(buff->buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+
+		memcpy(mappedResource.pData, data, sizeof(StructType));
+
+		context->Unmap(buff->buffer.Get(), 0);
     }
 
     void VSBindBuffers(std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>>& buffers) {

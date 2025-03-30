@@ -1,6 +1,13 @@
 #pragma once
 #include "framework.h"
 
+#include <typeindex>
+
+enum class PipelineStage {
+    VertexStage,
+    PixelStage,
+};
+
 struct Transform {
     DirectX::XMVECTOR position;
     DirectX::XMVECTOR rotation;
@@ -52,6 +59,9 @@ struct Texture {
 
 struct Buffer {
     Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
+    std::type_index                      type = typeid(void);
+    std::string                          name;
+	PipelineStage                        stage;
 };
 
 struct Model {
@@ -60,5 +70,5 @@ struct Model {
     Shader    shader;
     Texture   texture;
 
-    std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> buffers;
+    std::vector<Buffer> buffers;
 };
