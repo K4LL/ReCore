@@ -100,12 +100,12 @@ Model Renderer::createModel(std::vector<Vertex>& vertices,
 	const char* texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
-	Mesh    mesh = this->handler->createVertexArrayBuffer(vertices, indices);
-	Texture tex = this->createTexture(texturePath);
+	Mesh    mesh   = this->handler->createVertexArrayBuffer(vertices, indices);
+	Texture tex    = this->createTexture(texturePath);
 
-	Model model = {};
-	model.mesh = std::move(mesh);
-	model.shader = std::move(shader);
+	Model model   = {};
+	model.mesh    = std::move(mesh);
+	model.shader  = std::move(shader);
 	model.texture = std::move(tex);
 
 	return model;
@@ -116,8 +116,8 @@ Model Renderer::createModel(const char* path,
 							const char* texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
-	Mesh    mesh = this->createMesh(path);
-	Texture tex = this->createTexture(texturePath);
+	Mesh    mesh   = this->createMesh(path);
+	Texture tex    = this->createTexture(texturePath);
 
 
 	Model model   = {};
@@ -133,9 +133,12 @@ Model Renderer::getTemplate(const ModelTemplate t, void* params, const char* add
 	{
 	case ModelTemplate::Billboard: {
 		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
-		Model model                = this->createModel(desc->modelPath, std::format("", additionalVS).c_str(), std::format("", additionalPS).c_str(), desc->texturePath);
-		
-		model.buffers.push_back(this->handler->createConstantBuffer<DirectX::XMVECTOR>(nullptr));
+		Model model                = this->createModel(desc->modelPath, additionalVS, additionalPS, desc->texturePath);
+
+		auto* p = &this->camera->transform.rotation;
+		model.buffers.push_back(this->handler->createConstantBuffer<DirectX::XMVECTOR>(p));
+		model.buffers.back().name  = "cameraRotation";
+		model.buffers.back().stage = PipelineStage::VertexStage;
 
 		return model;
 	}
@@ -154,7 +157,7 @@ void Renderer::createGlobalLight() {
 	globalLight.direction   = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
 	globalLight.intensity   = 1.0f;
 
-	this->scene.globalLightData = globalLight;
+	this->scene.globalLightData   = globalLight;
 	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightData);
 }
 
@@ -189,10 +192,6 @@ void Renderer::render() {
 		fm.view       = DirectX::XMMatrixTranspose(this->camera->viewMatrix);
 
 		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(&fm);
-
-		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> buffers = { cbuffer.buffer };
-		this->handler->VSBindBuffers(buffers);
-
 		struct AlignedScale {
 			DirectX::XMFLOAT3 scale;
 			float             padding = 0.0f;
@@ -201,14 +200,16 @@ void Renderer::render() {
 
 		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(&ascale);
 
-		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> lightBuffer = {
-			this->scene.globalLightBuffer.buffer,
-			scaleBuffer.buffer,
-		};
-		for (int j = 0; j < model.get()->buffers.size(); j++) {
-			lightBuffer.push_back(model.get()->buffers[j].buffer);
+		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
+		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer, };
+
+		VSBuffers.reserve(model.get()->buffers.size());
+		for (uint32_t i = 0; i < model.get()->buffers.size(); i++) {
+			if (model.get()->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(model.get()->buffers[i].buffer);
+			else PSBuffers.push_back(model.get()->buffers[i].buffer);
 		}
-		this->handler->PSBindBuffers(lightBuffer);
+		this->handler->VSBindBuffers(VSBuffers);
+		this->handler->PSBindBuffers(PSBuffers);
 
 		this->handler->bindShaderResource(model.get()->texture.texture);
 

@@ -88,13 +88,15 @@ public:
 	Model getTemplate(const ModelTemplate t, void* params, const char* additionalVS, const char* additionalPS);
 
 	template <typename Ty>
-	void createBuffer(Model* bufferParent, Ty& bufferData) {
+	void createBuffer(Model* bufferParent, const PipelineStage stage, Ty& bufferData, std::string name = "") {
 		Buffer buffer = this->handler->createConstantBuffer<Ty>(&bufferData);
+		buffer.name   = std::move(name);
+		buffer.stage  = stage;
 		bufferParent->buffers.push_back(buffer);
 	}
 	template <typename Ty>
 	void updateBuffer(Model* bufferParent, Ty& bufferData, const size_t index) {
-		this->handler->updateConstantBuffer(bufferParent->buffers[index], &bufferData);
+		this->handler->updateConstantBuffer<Ty>(&bufferParent->buffers[index], &bufferData);
 	}
 
 	void createGlobalLight();
