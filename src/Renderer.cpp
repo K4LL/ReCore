@@ -23,7 +23,11 @@ void Renderer::build(ObjectsManager* objectsManager, Window* window, GuiManager*
 }
 
 Mesh Renderer::createMesh(std::vector<Vertex>& vertices, std::vector<DWORD>& indices) {
-	return this->handler->createVertexArrayBuffer(vertices, indices);
+	Mesh mesh = {};
+	this->handler->createVertexArrayBuffer(&mesh.vertexArrayBuffer, &mesh.vertices, &mesh.vertexInitData, vertices);
+	this->handler->createIndexArrayBuffer(&mesh.indexArrayBuffer, &mesh.indices, &mesh.indexInitData, indices);
+	
+	return mesh;
 }
 Mesh Renderer::createMesh(const char* path) {
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
@@ -67,7 +71,7 @@ Mesh Renderer::createMesh(const char* path) {
 	verticesThread.join();
 	indicesThread.join();
 
-	Mesh retVal = this->handler->createVertexArrayBuffer(vertices, indices);
+	Mesh retVal = this->createMesh(vertices, indices);
 	retVal.path = path;
 
 	return retVal;
@@ -100,7 +104,7 @@ Model Renderer::createModel(std::vector<Vertex>& vertices,
 	const char* texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
-	Mesh    mesh   = this->handler->createVertexArrayBuffer(vertices, indices);
+	Mesh    mesh   = this->createMesh(vertices, indices);
 	Texture tex    = this->createTexture(texturePath);
 
 	Model model   = {};
@@ -250,7 +254,7 @@ void Renderer::createGlobalLight() {
 	globalLight.intensity   = 1.0f;
 
 	this->scene.globalLightData   = globalLight;
-	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightData);
+	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(this->scene.globalLightData);
 }
 
 void Renderer::clearScreen() {
@@ -282,7 +286,7 @@ void Renderer::render() {
 		fm.model      = DirectX::XMMatrixTranspose(transform.model);
 		fm.projection = DirectX::XMMatrixTranspose(this->camera->projectionMatrix);
 		fm.view       = DirectX::XMMatrixTranspose(this->camera->viewMatrix);
-		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(&fm);
+		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(fm);
 
 		struct AlignedScale {
 			DirectX::XMFLOAT3 scale;
@@ -290,7 +294,7 @@ void Renderer::render() {
 		} ascale;
 		DirectX::XMStoreFloat3(&ascale.scale, model.get()->transform.scale);
 
-		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(&ascale);
+		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(ascale);
 
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer };
