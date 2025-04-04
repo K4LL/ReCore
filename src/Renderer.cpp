@@ -22,7 +22,7 @@ void Renderer::build(ObjectsManager* objectsManager, Window* window, GuiManager*
 	this->camera = new Camera(this->window);
 }
 
-Mesh Renderer::createMesh(std::vector<Vertex>& vertices, std::vector<DWORD>& indices) {
+Mesh Renderer::createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
 	Mesh mesh = {};
 	this->handler->createVertexArrayBuffer(&mesh.vertexArrayBuffer, &mesh.vertices, &mesh.vertexInitData, vertices);
 	this->handler->createIndexArrayBuffer(&mesh.indexArrayBuffer, &mesh.indices, &mesh.indexInitData, indices);
@@ -38,7 +38,7 @@ Mesh Renderer::createMesh(const char* path) {
 	aiMesh* mesh = scene->mMeshes[0];
 
 	std::vector<Vertex> vertices;
-	std::vector<DWORD>  indices;
+	std::vector<uint32_t>  indices;
 
 	std::thread verticesThread([&]() {
 		vertices.reserve(mesh->mNumVertices);
@@ -97,20 +97,20 @@ Texture Renderer::createTexture(const char* path) {
 	return texture;
 }
 
-Model Renderer::createModel(std::vector<Vertex>& vertices,
-	std::vector<DWORD>& indices,
-	const char* vertexShaderSource,
-	const char* pixelShaderSource,
-	const char* texturePath)
+Model Renderer::createModel(const std::vector<Vertex>&   vertices,
+							const std::vector<uint32_t>& indices,
+							const char*					 vertexShaderSource,
+							const char*					 pixelShaderSource,
+							const char*					 texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
 	Mesh    mesh   = this->createMesh(vertices, indices);
 	Texture tex    = this->createTexture(texturePath);
 
 	Model model   = {};
-	model.mesh    = std::move(mesh);
-	model.shader  = std::move(shader);
-	model.texture = std::move(tex);
+	model.mesh    = std::make_unique<Mesh>(std::move(mesh));
+	model.shader  = std::make_unique<Shader>(std::move(shader));
+	model.texture = std::make_unique<Texture>(std::move(tex));
 
 	return model;
 }
@@ -125,9 +125,9 @@ Model Renderer::createModel(const char* path,
 
 
 	Model model   = {};
-	model.mesh    = std::move(mesh);
-	model.shader  = std::move(shader);
-	model.texture = std::move(tex);
+	model.mesh    = std::make_unique<Mesh>(std::move(mesh));
+	model.shader  = std::make_unique<Shader>(std::move(shader));
+	model.texture = std::make_unique<Texture>(std::move(tex));
 
 	return model;
 }
@@ -253,8 +253,8 @@ void Renderer::createGlobalLight() {
 	globalLight.direction   = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
 	globalLight.intensity   = 1.0f;
 
-	this->scene.globalLightData   = globalLight;
-	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(this->scene.globalLightData);
+	this->scene.globalLightData = globalLight;
+	this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightBuffer.buffer, this->scene.globalLightData);
 }
 
 void Renderer::clearScreen() {
@@ -286,7 +286,9 @@ void Renderer::render() {
 		fm.model      = DirectX::XMMatrixTranspose(transform.model);
 		fm.projection = DirectX::XMMatrixTranspose(this->camera->projectionMatrix);
 		fm.view       = DirectX::XMMatrixTranspose(this->camera->viewMatrix);
-		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(fm);
+
+		Buffer cbuffer; 
+		Renderer::handler->createConstantBuffer<FrameData>(&cbuffer.buffer, fm);
 
 		struct AlignedScale {
 			DirectX::XMFLOAT3 scale;
@@ -294,7 +296,8 @@ void Renderer::render() {
 		} ascale;
 		DirectX::XMStoreFloat3(&ascale.scale, model.get()->transform.scale);
 
-		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(ascale);
+		Buffer scaleBuffer;
+		Renderer::handler->createConstantBuffer<AlignedScale>(&scaleBuffer.buffer, ascale);
 
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer };
@@ -306,13 +309,16 @@ void Renderer::render() {
 		this->handler->VSBindBuffers(VSBuffers);
 		this->handler->PSBindBuffers(PSBuffers);
 
-		this->handler->bindShaderResource(model.get()->texture.texture);
+		this->handler->bindShaderResource(model.get()->texture.get()->texture);
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
 		this->handler->createSamplerState(&samplerState);
 		this->handler->bindSamplerState(samplerState);
 
-		this->handler->render(model.get()->shader, model.get()->mesh);
+		auto* shader = model.get()->shader.get();
+		auto* mesh   = model.get()->mesh.get();
+		this->handler->render(shader->vertexShader, shader->pixelShader, shader->inputLayout,
+							  mesh->vertexArrayBuffer, mesh->indexArrayBuffer, mesh->indices.size());
 	});
 
 	guiManager->render();

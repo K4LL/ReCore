@@ -42,8 +42,8 @@ struct Mesh {
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexArrayBuffer;
     D3D11_SUBRESOURCE_DATA indexInitData;
 
-    std::vector<Vertex> vertices;
-    std::vector<DWORD>  indices;
+    std::vector<Vertex>   vertices;
+    std::vector<uint32_t> indices;
 
     std::string path;
 };
@@ -59,16 +59,15 @@ struct Texture {
 
 struct Buffer {
     Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
-    std::type_index                      type = typeid(void);
     std::string                          name;
 	PipelineStage                        stage;
 };
 
 struct Model {
-    Transform transform;
-    Mesh      mesh;
-    Shader    shader;
-    Texture   texture;
+    Transform                  transform;
+    std::unique_ptr<Mesh>      mesh;
+    std::unique_ptr<Shader>    shader;
+    std::unique_ptr<Texture>   texture;
 
     std::vector<Buffer> buffers;
 };

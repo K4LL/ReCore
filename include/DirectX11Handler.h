@@ -89,8 +89,8 @@ public:
         RC_EI_ASSERT(FAILED(hr), "Failed to create render target view");
     }
 
-    void bindShaderResource(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv) {
-        this->context->PSSetShaderResources(0, 1, srv.GetAddressOf());
+    void bindShaderResource(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> inShaderResourceView) {
+        this->context->PSSetShaderResources(0, 1, inShaderResourceView.GetAddressOf());
     }
 
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView> createDepthStencilBuffer(const DXGI_FORMAT format) {
@@ -203,9 +203,9 @@ public:
     }
 
     void createVertexArrayBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outVertexArrayBuffer, 
-                                 std::vector<Vertex>*                 outVertices, 
-                                 D3D11_SUBRESOURCE_DATA*              outInitData, 
-                                 const std::vector<Vertex>&           inVertices) 
+                                 std::vector<Vertex>*                  outVertices, 
+                                 D3D11_SUBRESOURCE_DATA*               outInitData, 
+                                 const std::vector<Vertex>&            inVertices) 
     {
         // Set asserts for debug builds
 		RC_DBG_CODE(
@@ -244,9 +244,10 @@ public:
         RC_EI_ASSERT(FAILED(hr), "Failed to create vertex array buffer");
     }
     void createIndexArrayBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outIndexArrayBuffer, 
-                                std::vector<DWORD>*                   outIndices, 
+                                std::vector<uint32_t>*                outIndices, 
                                 D3D11_SUBRESOURCE_DATA*               outInitData, 
-                                const std::vector<DWORD>&             inIndices) {
+                                const std::vector<uint32_t>&          inIndices) 
+    {
         // Set asserts for debug builds
         RC_DBG_CODE(
             if (!outIndexArrayBuffer) {
@@ -344,7 +345,7 @@ public:
         int height;
         int channels;
 
-		// Create a unique pointer to the image data
+		// Create an unique pointer to the image data
         std::unique_ptr<unsigned char[], decltype(&stbi_image_free)> imageData(
             stbi_load(path, &width, &height, &channels, STBI_rgb_alpha), stbi_image_free
         );
@@ -418,8 +419,8 @@ public:
 
         D3D11_SAMPLER_DESC samplerDesc = {};
         samplerDesc.Filter             = D3D11_FILTER_MIN_MAG_MIP_LINEAR;  // Linear filtering for min/mag/mip
-        samplerDesc.AddressU           = D3D11_TEXTURE_ADDRESS_WRAP;  // Wrap texture coordinates horizontally
-        samplerDesc.AddressV           = D3D11_TEXTURE_ADDRESS_WRAP;  // Wrap texture coordinates vertically
+        samplerDesc.AddressU           = D3D11_TEXTURE_ADDRESS_WRAP;       // Wrap texture coordinates horizontally
+        samplerDesc.AddressV           = D3D11_TEXTURE_ADDRESS_WRAP;       // Wrap texture coordinates vertically
         samplerDesc.AddressW           = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.ComparisonFunc     = D3D11_COMPARISON_NEVER;
         samplerDesc.MinLOD             = 0;
@@ -432,28 +433,34 @@ public:
         this->context->PSSetSamplers(0, 1, inSamplerState.GetAddressOf());
     }
 
-    void render(Shader& shader, Mesh& mesh) {
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
-        this->context->VSSetShader(shader.vertexShader.Get(), nullptr, 0);
-        this->context->PSSetShader(shader.pixelShader.Get(), nullptr, 0);
+    void render(Microsoft::WRL::ComPtr<ID3D11VertexShader> inVertexShader, 
+                Microsoft::WRL::ComPtr<ID3D11PixelShader>  inPixelShader,
+                Microsoft::WRL::ComPtr<ID3D11InputLayout>  inInputLayout,
+                Microsoft::WRL::ComPtr<ID3D11Buffer>       inVertexArrayBuffer,
+                Microsoft::WRL::ComPtr<ID3D11Buffer>       inIndexArrayBuffer,
+                const uint32_t                             inIndexCount) 
+    {
+        uint32_t stride = sizeof(Vertex);
+        uint32_t offset = 0;
+        this->context->VSSetShader(inVertexShader.Get(), nullptr, 0);
+        this->context->PSSetShader(inPixelShader.Get(), nullptr, 0);
 
         // Set vertex and index array buffers
-        this->context->IASetVertexBuffers(0, 1, mesh.vertexArrayBuffer.GetAddressOf(), &stride, &offset);
-        this->context->IASetIndexBuffer(mesh.indexArrayBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+        this->context->IASetVertexBuffers(0, 1, inVertexArrayBuffer.GetAddressOf(), &stride, &offset);
+        this->context->IASetIndexBuffer(inIndexArrayBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
         // Set input layout and primitive topology
-        this->context->IASetInputLayout(shader.inputLayout.Get());
+        this->context->IASetInputLayout(inInputLayout.Get());
         this->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         
-        this->context->DrawIndexed(mesh.indices.size(), 0, 0);
+        this->context->DrawIndexed(inIndexCount, 0, 0);
     }
 
     void present() {
         this->swapChain->Present(vSync, 0);
     }
 
-    void setViewport(const UINT width, const UINT height) {
+    void setViewport(const uint32_t width, const uint32_t height) {
         viewport.Width    = width;
         viewport.Height   = height;
         viewport.TopLeftX = 0.0f;
@@ -464,43 +471,38 @@ public:
     }
     
     template <typename StructType>
-    Buffer createConstantBuffer(StructType& inData) {
+    void createConstantBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outBuffer, const StructType& inData) {
         HRESULT hr;
 
-        Buffer cbuffer = {};
-		cbuffer.type   = typeid(StructType);
-
         D3D11_BUFFER_DESC cbufferDesc   = {};
-        cbufferDesc.Usage               = D3D11_USAGE_DYNAMIC;          // Default usage (GPU read-only)
-        cbufferDesc.ByteWidth           = sizeof(StructType);           // Size of the constant buffer
-        cbufferDesc.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;   // Bind as constant buffer
-        cbufferDesc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;  
-        cbufferDesc.MiscFlags           = 0;                            // No miscellaneous flags
-        cbufferDesc.StructureByteStride = 0;                            // Not applicable for constant buffers
+        cbufferDesc.Usage               = D3D11_USAGE_DYNAMIC;
+        cbufferDesc.ByteWidth           = sizeof(StructType);
+        cbufferDesc.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;
+        cbufferDesc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+        cbufferDesc.MiscFlags           = 0;
+        cbufferDesc.StructureByteStride = 0;
 
         D3D11_SUBRESOURCE_DATA initData = {};
         initData.SysMemPitch            = 0;
         initData.SysMemSlicePitch       = 0;
         initData.pSysMem                = &inData;
 
-        hr = this->device->CreateBuffer(&cbufferDesc, &initData, &cbuffer.buffer);
+        hr = this->device->CreateBuffer(&cbufferDesc, &initData, outBuffer->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create constant buffer.");
-        
-        return cbuffer;
     }
     template <typename StructType>
-    void updateConstantBuffer(Buffer& inBuffer, StructType& inData) {
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		this->context->Map(inBuffer.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    void updateConstantBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer> inBuffer, const StructType& inData) {
+        D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+		this->context->Map(inBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 
 		memcpy(mappedResource.pData, &inData, sizeof(StructType));
 
-		context->Unmap(inBuffer.buffer.Get(), 0);
+		context->Unmap(inBuffer.Get(), 0);
     }
 
     void VSBindBuffers(std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>>& buffers) {
         if (buffers.empty()) return;
-        context->VSSetConstantBuffers(0, buffers.size(), buffers.data()->GetAddressOf()); // Vertex Shader
+        context->VSSetConstantBuffers(0, buffers.size(), buffers.data()->GetAddressOf());
     }
     void PSBindBuffers(std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>>& buffers) {
         if (buffers.empty()) return;
