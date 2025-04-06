@@ -95,6 +95,9 @@ public:
 
 				this->transform.rotation = DirectX::XMQuaternionRotationRollPitchYaw(this->eulerAngles.pitch, this->eulerAngles.yaw, 0.0f);
 				this->transform.rotation = DirectX::XMQuaternionNormalize(this->transform.rotation);
+
+				RC_DBG_LOG(this->eulerAngles.yaw);
+				RC_DBG_LOG(this->eulerAngles.pitch);
 			}
 		}
 		else {

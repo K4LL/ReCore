@@ -15,7 +15,7 @@ private:
 
 public:
     void build(FlexibleVector<>* ptr, ThreadPool* threads) {
-        this->ptr = ptr;
+        this->ptr     = ptr;
         this->threads = threads;
     }
 

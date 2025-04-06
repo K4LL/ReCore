@@ -91,8 +91,7 @@ Texture Renderer::createTexture(const char* path) {
 
 	this->handler->createShaderResourceView(&texture.texture, texture2D);
 	texture.image = std::move(imageData);
-
-	texture.path = path;
+	texture.path  = path;
 
 	return texture;
 }
@@ -122,7 +121,6 @@ Model Renderer::createModel(const char* path,
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
 	Mesh    mesh   = this->createMesh(path);
 	Texture tex    = this->createTexture(texturePath);
-
 
 	Model model   = {};
 	model.mesh    = std::make_unique<Mesh>(std::move(mesh));
@@ -266,15 +264,17 @@ void Renderer::render() {
 
 	this->objectsManager->get<std::unique_ptr<Model>>()
 		.for_each([this](std::unique_ptr<Model>& model) {
+		auto* modelPtr = model.get();
+
 		DirectX::XMFLOAT3 position;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 
-		DirectX::XMStoreFloat3(&position, model.get()->transform.position);
-		DirectX::XMStoreFloat4(&rotation, model.get()->transform.rotation);
-		DirectX::XMStoreFloat3(&scale, model.get()->transform.scale);
+		DirectX::XMStoreFloat3(&position, modelPtr->transform.position);
+		DirectX::XMStoreFloat4(&rotation, modelPtr->transform.rotation);
+		DirectX::XMStoreFloat3(&scale, modelPtr->transform.scale);
 
-		auto& transform = model.get()->transform;
+		auto& transform = modelPtr->transform;
 
 		DirectX::XMMATRIX scaleMatrix    = DirectX::XMMatrixScalingFromVector(transform.scale);
 		DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(transform.rotation);
@@ -294,7 +294,7 @@ void Renderer::render() {
 			DirectX::XMFLOAT3 scale;
 			float             padding = 0.0f;
 		} ascale;
-		DirectX::XMStoreFloat3(&ascale.scale, model.get()->transform.scale);
+		DirectX::XMStoreFloat3(&ascale.scale, modelPtr->transform.scale);
 
 		Buffer scaleBuffer;
 		Renderer::handler->createConstantBuffer<AlignedScale>(&scaleBuffer.buffer, ascale);
@@ -302,21 +302,21 @@ void Renderer::render() {
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer };
 
-		for (uint32_t i = 0; i < model.get()->buffers.size(); i++) {
-			if (model.get()->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(model.get()->buffers[i].buffer);
-			else PSBuffers.push_back(model.get()->buffers[i].buffer);
+		for (uint32_t i = 0; i < modelPtr->buffers.size(); i++) {
+			if (modelPtr->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(modelPtr->buffers[i].buffer);
+			else PSBuffers.push_back(modelPtr->buffers[i].buffer);
 		}
 		this->handler->VSBindBuffers(VSBuffers);
 		this->handler->PSBindBuffers(PSBuffers);
 
-		this->handler->bindShaderResource(model.get()->texture.get()->texture);
+		this->handler->bindShaderResource(modelPtr->texture.get()->texture);
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
 		this->handler->createSamplerState(&samplerState);
 		this->handler->bindSamplerState(samplerState);
 
-		auto* shader = model.get()->shader.get();
-		auto* mesh   = model.get()->mesh.get();
+		auto* shader = modelPtr->shader.get();
+		auto* mesh   = modelPtr->mesh.get();
 		this->handler->render(shader->vertexShader, shader->pixelShader, shader->inputLayout,
 							  mesh->vertexArrayBuffer, mesh->indexArrayBuffer, mesh->indices.size());
 	});
