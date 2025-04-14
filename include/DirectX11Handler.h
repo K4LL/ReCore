@@ -76,25 +76,6 @@ public:
         this->createDepthStencil(DXGI_FORMAT_D24_UNORM_S8_UINT);
 
         this->setViewport(window->width, window->height);
-
-#ifdef _DEBUG
-        std::string message = std::format(
-            R"(DirectX 11 Handler successfully created!
-- Device:             {}
-- Context:            {}
-- Swap Chain:         {}
-- Depth Stencil View: {}
-- Render Target View: {}
-- Viewport:           {})",
-            static_cast<void*>(this->device.Get()),
-            static_cast<void*>(this->context.Get()),
-            static_cast<void*>(this->swapChain.Get()),
-            static_cast<void*>(this->depthStencilView.Get()),
-            static_cast<void*>(this->renderTargetView.Get()),
-            static_cast<void*>(&this->viewport)
-        );
-        RC_DBG_LOG(message);
-#endif
     }
 
     void createRenderTargetView() {
@@ -108,9 +89,10 @@ public:
         RC_EI_ASSERT(FAILED(hr), "Failed to create render target view");
     }
 
-    void bindShaderResource(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv) {
-        this->context->PSSetShaderResources(0, 1, srv.GetAddressOf());
+    void bindShaderResource(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> inShaderResourceView) {
+        this->context->PSSetShaderResources(0, 1, inShaderResourceView.GetAddressOf());
     }
+
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView> createDepthStencilBuffer(const DXGI_FORMAT format) {
         HRESULT hr;
 
@@ -182,10 +164,6 @@ public:
         RC_EI_ASSERT(FAILED(hr), "Failed to create depth stencil state");
     }
 
-    void prepareToRenderShadowMaps(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencil) {
-        this->context->OMSetRenderTargets(0, nullptr, depthStencil.Get());
-        this->context->OMSetDepthStencilState(this->depthStencilState.Get(), 0);
-    }
     void prepare() {
         this->context->OMSetRenderTargets(1, this->renderTargetView.GetAddressOf(), this->depthStencilView.Get());
         this->context->OMSetDepthStencilState(this->depthStencilState.Get(), 0);
@@ -219,67 +197,118 @@ public:
                                              nullptr, &shader.pixelShader);
         RC_EI_ASSERT(FAILED(hr), "Failed to create pixel shader");
 
-        createInputLayout(&shader.inputLayout, vertexShaderBlob, pixelShaderBlob);
+        this->createInputLayout(&shader.inputLayout, vertexShaderBlob, pixelShaderBlob);
 
         return shader;
     }
 
-    Mesh createVertexArrayBuffer(std::vector<Vertex>& vertices, std::vector<DWORD>& indices) {
+    void createVertexArrayBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outVertexArrayBuffer, 
+                                 std::vector<Vertex>*                  outVertices, 
+                                 D3D11_SUBRESOURCE_DATA*               outInitData, 
+                                 const std::vector<Vertex>&            inVertices) 
+    {
+        // Set asserts for debug builds
+		RC_DBG_CODE(
+            if (!outVertexArrayBuffer) {
+                RC_DBG_ERROR("The OUT VERTEX ARRAY BUFFER passed to the create vertex array buffer function is 0.");
+                return;
+            }
+            if (!outVertices) {
+                RC_DBG_ERROR("The OUT VERTEX DATA passed to the create vertex array buffer function is 0.");
+                return;
+            }
+            if (!outInitData) {
+                RC_DBG_ERROR("The OUT SUBRESOURCE DATA passed to the create vertex array buffer function is 0.");
+                return;
+            }
+            if (inVertices.empty()) {
+                RC_DBG_ERROR("The IN VERTEX DATA passed to the create vertex array buffer function is empty.");
+                return;
+            }
+        );
+
         HRESULT hr;
 
-        Mesh mesh     = {};
-        mesh.vertices = vertices;
-        mesh.indices  = indices;
+		// Be sure this happens before the vertex array buffer is created
+        *outVertices = inVertices;
 
         D3D11_BUFFER_DESC vertexArrayBufferDescription = {};
         vertexArrayBufferDescription.Usage             = D3D11_USAGE_DEFAULT;
-        vertexArrayBufferDescription.ByteWidth         = vertices.size() * sizeof(Vertex);
+        vertexArrayBufferDescription.ByteWidth         = outVertices->size() * sizeof(Vertex);
         vertexArrayBufferDescription.BindFlags         = D3D11_BIND_VERTEX_BUFFER;
         vertexArrayBufferDescription.CPUAccessFlags    = NULL;
 
-        D3D11_BUFFER_DESC indexArrayBufferDescription = {};
-        indexArrayBufferDescription.Usage             = D3D11_USAGE_DEFAULT;
-        indexArrayBufferDescription.ByteWidth         = indices.size() * sizeof(DWORD);
-        indexArrayBufferDescription.BindFlags         = D3D11_BIND_INDEX_BUFFER;
-        indexArrayBufferDescription.CPUAccessFlags    = NULL;
-
-        mesh.vertexInitData.pSysMem = mesh.vertices.data();
-        hr = this->device->CreateBuffer(&vertexArrayBufferDescription, &mesh.vertexInitData, &mesh.vertexArrayBuffer);
+		// Set the data for the vertex array buffer
+        outInitData->pSysMem = outVertices->data();
+        hr = this->device->CreateBuffer(&vertexArrayBufferDescription, outInitData, outVertexArrayBuffer->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create vertex array buffer");
+    }
+    void createIndexArrayBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outIndexArrayBuffer, 
+                                std::vector<uint32_t>*                outIndices, 
+                                D3D11_SUBRESOURCE_DATA*               outInitData, 
+                                const std::vector<uint32_t>&          inIndices) 
+    {
+        // Set asserts for debug builds
+        RC_DBG_CODE(
+            if (!outIndexArrayBuffer) {
+                RC_DBG_ERROR("The OUT INDEX ARRAY BUFFER passed to the create index array buffer function is 0.");
+                return;
+            }
+            if (!outIndices) {
+                RC_DBG_ERROR("The OUT INDEX DATA passed to the create index array buffer function is 0.");
+                return;
+            }
+            if (!outInitData) {
+                RC_DBG_ERROR("The OUT SUBRESOURCE DATA passed to the create index array buffer function is 0.");
+                return;
+            }
+            if (inIndices.empty()) {
+                RC_DBG_ERROR("The IN INDEX DATA passed to the create index array buffer function is empty.");
+                return;
+            }
+        );
 
-        mesh.indexInitData.pSysMem = mesh.indices.data();
-        hr = this->device->CreateBuffer(&indexArrayBufferDescription, &mesh.indexInitData, &mesh.indexArrayBuffer);
+        HRESULT hr;
+
+        // Be sure this happens before the index array buffer is created
+        *outIndices = inIndices;
+
+        D3D11_BUFFER_DESC vertexArrayBufferDescription = {};
+        vertexArrayBufferDescription.Usage             = D3D11_USAGE_DEFAULT;
+        vertexArrayBufferDescription.ByteWidth         = outIndices->size() * sizeof(DWORD);
+        vertexArrayBufferDescription.BindFlags         = D3D11_BIND_INDEX_BUFFER;
+        vertexArrayBufferDescription.CPUAccessFlags    = NULL;
+
+        // Set the data for the index array buffer
+        outInitData->pSysMem = outIndices->data();
+        hr = this->device->CreateBuffer(&vertexArrayBufferDescription, outInitData, outIndexArrayBuffer->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create index array buffer");
-
-        return mesh;
     }
 
-    void createInputLayout(Microsoft::WRL::ComPtr<ID3D11InputLayout>* inputLayout, 
-                           Microsoft::WRL::ComPtr<ID3DBlob>          vertexShaderBlob, 
-                           Microsoft::WRL::ComPtr<ID3DBlob>          pixelShaderBlob)
+    void createInputLayout(Microsoft::WRL::ComPtr<ID3D11InputLayout>* outInputLayout, 
+                           Microsoft::WRL::ComPtr<ID3DBlob>           inVertexShaderBlob, 
+                           Microsoft::WRL::ComPtr<ID3DBlob>           inPixelShaderBlob)
     {
+        // Set asserts for debug builds
+        RC_DBG_CODE(
+			if (!outInputLayout) {
+				RC_DBG_ERROR("The OUT INPUT LAYOUT passed to the create input layout function is 0.");
+				return;
+			}
+        );
+
         HRESULT hr;
+
         hr = this->device->CreateInputLayout(this->layout, ARRAYSIZE(this->layout),
-                                             vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(),
-                                             inputLayout->GetAddressOf());
+                                             inVertexShaderBlob->GetBufferPointer(), inVertexShaderBlob->GetBufferSize(),
+                                             outInputLayout->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create input layout");
     }
 
-    void clearDepthStencil() {
-        D3D11_RASTERIZER_DESC rasterizerDesc = {};
-        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-        rasterizerDesc.CullMode = D3D11_CULL_NONE;
-
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
-        device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf());
-        context->RSSetState(rasterizerState.Get());
-
-        this->context->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    }
     void clearScreen() {
         D3D11_RASTERIZER_DESC rasterizerDesc = {};
-        rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-        rasterizerDesc.CullMode = D3D11_CULL_NONE;
+        rasterizerDesc.FillMode              = D3D11_FILL_SOLID;
+        rasterizerDesc.CullMode              = D3D11_CULL_NONE;
 
         Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState = nullptr;
         device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf());
@@ -289,22 +318,40 @@ public:
         this->context->ClearDepthStencilView(this->depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }
 
-    void createTexture2D(Microsoft::WRL::ComPtr<ID3D11Texture2D>*     outTexture,
-        std::unique_ptr<unsigned char[], decltype(&stbi_image_free)>* outImageData,
-                         const char*                                  path, 
-                         const DXGI_FORMAT                            format)
+    void createTexture2D(Microsoft::WRL::ComPtr<ID3D11Texture2D>*                      outTexture,
+                         std::unique_ptr<unsigned char[], decltype(&stbi_image_free)>* outImageData,
+                         const char*                                                   path, 
+                         const DXGI_FORMAT                                             format)
     {
+		// Set asserts for debug builds
+        RC_DBG_CODE(
+			if (!outTexture) {
+				RC_DBG_ERROR("The OUT TEXTURE passed to the create texture 2D function is 0.");
+				return;
+			}
+		    if (!outImageData) {
+			    RC_DBG_ERROR("The OUT IMAGE DATA passed to the create texture 2D function is 0.");
+			    return;
+		    }
+		    if (!path) {
+			    RC_DBG_ERROR("The PATH passed to the create texture 2D function is 0.");
+			    return;
+		    }
+        );
+
         HRESULT hr;
 
         int width;
         int height;
         int channels;
 
+		// Create an unique pointer to the image data
         std::unique_ptr<unsigned char[], decltype(&stbi_image_free)> imageData(
-            stbi_load(path, &width, &height, &channels, STBI_rgb_alpha),
-            stbi_image_free);
+            stbi_load(path, &width, &height, &channels, STBI_rgb_alpha), stbi_image_free
+        );
         RC_EI_ASSERT(!imageData, "Failed to load image data.");
 
+        // Create image description
         D3D11_TEXTURE2D_DESC textureDesc = {};
         textureDesc.Width                = width;
         textureDesc.Height               = height;
@@ -318,22 +365,23 @@ public:
         textureDesc.CPUAccessFlags       = NULL;
         textureDesc.MiscFlags            = NULL;
 
+        // Create image init data
         D3D11_SUBRESOURCE_DATA initData = {};
         initData.pSysMem                = imageData.get();
         initData.SysMemPitch            = width * 4;
 
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
-        hr = this->device->CreateTexture2D(&textureDesc, &initData, texture.GetAddressOf());
+        // Create texture
+        hr = this->device->CreateTexture2D(&textureDesc, &initData, outTexture->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create texture 2D.");
         
-        *outTexture   = texture;
+		// Pass the image data to the output parameter
         *outImageData = std::move(imageData);
     }
-    ID3D11Texture2D* getTextureFromShaderResourceView(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceView) {
+    ID3D11Texture2D* getTextureFromShaderResourceView(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> inShaderResourceView) {
         HRESULT hr;
 
         ID3D11Resource* resource;
-        shaderResourceView->GetResource(&resource);
+        inShaderResourceView->GetResource(&resource);
 
         ID3D11Texture2D* texture;
 
@@ -344,21 +392,35 @@ public:
     }
 
     void createShaderResourceView(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>* outShaderResourceView,
-                                  Microsoft::WRL::ComPtr<ID3D11Resource>            resource) 
+                                  Microsoft::WRL::ComPtr<ID3D11Resource>            inResource) 
     {
+        RC_DBG_CODE(
+            if (!outShaderResourceView) {
+                RC_DBG_ERROR("The OUT SHADER RESOURCE VIEW passed to the create shader resource view function is 0.");
+                return;
+            }
+        );
+
         HRESULT hr;
 
-        hr = this->device->CreateShaderResourceView(resource.Get(), nullptr, outShaderResourceView->GetAddressOf());
+        hr = this->device->CreateShaderResourceView(inResource.Get(), nullptr, outShaderResourceView->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create shader resource view.");
     }
 
     void createSamplerState(Microsoft::WRL::ComPtr<ID3D11SamplerState>* outSamplerState) {
+        RC_DBG_CODE(
+            if (!outSamplerState) {
+                RC_DBG_ERROR("The OUT SAMPLER STATE passed to the create sampler state function is 0.");
+                return;
+            }
+        );
+
         HRESULT hr;
 
         D3D11_SAMPLER_DESC samplerDesc = {};
         samplerDesc.Filter             = D3D11_FILTER_MIN_MAG_MIP_LINEAR;  // Linear filtering for min/mag/mip
-        samplerDesc.AddressU           = D3D11_TEXTURE_ADDRESS_WRAP;  // Wrap texture coordinates horizontally
-        samplerDesc.AddressV           = D3D11_TEXTURE_ADDRESS_WRAP;  // Wrap texture coordinates vertically
+        samplerDesc.AddressU           = D3D11_TEXTURE_ADDRESS_WRAP;       // Wrap texture coordinates horizontally
+        samplerDesc.AddressV           = D3D11_TEXTURE_ADDRESS_WRAP;       // Wrap texture coordinates vertically
         samplerDesc.AddressW           = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.ComparisonFunc     = D3D11_COMPARISON_NEVER;
         samplerDesc.MinLOD             = 0;
@@ -367,39 +429,38 @@ public:
         hr = this->device->CreateSamplerState(&samplerDesc, outSamplerState->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create sampler state.");
     }
-    void bindSamplerState(Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState) {
-        RC_WI_ASSERT(!samplerState.Get(), "Sampler state is null. Did you mean to bind a sampler state?");
-        this->context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+    void bindSamplerState(Microsoft::WRL::ComPtr<ID3D11SamplerState> inSamplerState) {
+        this->context->PSSetSamplers(0, 1, inSamplerState.GetAddressOf());
     }
 
-    void render(Shader& shader, Mesh& mesh) {
-        RC_WI_ASSERT(!shader.vertexShader.Get(), "The vertex shader passed to the render function is not valid.");
-        RC_WI_ASSERT(!shader.pixelShader.Get(), "The pixel shader passed to the render function is not valid.");
-        RC_WI_ASSERT(!shader.inputLayout.Get(), "The input layout passed to the render function is not valid.");
+    void render(Microsoft::WRL::ComPtr<ID3D11VertexShader> inVertexShader, 
+                Microsoft::WRL::ComPtr<ID3D11PixelShader>  inPixelShader,
+                Microsoft::WRL::ComPtr<ID3D11InputLayout>  inInputLayout,
+                Microsoft::WRL::ComPtr<ID3D11Buffer>       inVertexArrayBuffer,
+                Microsoft::WRL::ComPtr<ID3D11Buffer>       inIndexArrayBuffer,
+                const uint32_t                             inIndexCount) 
+    {
+        uint32_t stride = sizeof(Vertex);
+        uint32_t offset = 0;
+        this->context->VSSetShader(inVertexShader.Get(), nullptr, 0);
+        this->context->PSSetShader(inPixelShader.Get(), nullptr, 0);
 
-        RC_WI_ASSERT(!mesh.vertexArrayBuffer.Get(), "The vertex array buffer passed to the render function is not valid.");
-        RC_WI_ASSERT(!mesh.indexArrayBuffer.Get(), "The index array buffer passed to the render function is not valid.");
-        RC_WI_ASSERT(mesh.vertices.empty(), "The vertex data size is 0.");
-        RC_WI_ASSERT(mesh.vertices.empty(), "The index data size is 0.");
+        // Set vertex and index array buffers
+        this->context->IASetVertexBuffers(0, 1, inVertexArrayBuffer.GetAddressOf(), &stride, &offset);
+        this->context->IASetIndexBuffer(inIndexArrayBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
-        this->context->VSSetShader(shader.vertexShader.Get(), nullptr, 0);
-        this->context->PSSetShader(shader.pixelShader.Get(), nullptr, 0);
-
-        this->context->IASetVertexBuffers(0, 1, mesh.vertexArrayBuffer.GetAddressOf(), &stride, &offset);
-        this->context->IASetIndexBuffer(mesh.indexArrayBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        this->context->IASetInputLayout(shader.inputLayout.Get());
+        // Set input layout and primitive topology
+        this->context->IASetInputLayout(inInputLayout.Get());
         this->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        this->context->DrawIndexed(mesh.indices.size(), 0, 0);
+        
+        this->context->DrawIndexed(inIndexCount, 0, 0);
     }
 
     void present() {
         this->swapChain->Present(vSync, 0);
     }
 
-    void setViewport(const UINT width, const UINT height) {
+    void setViewport(const uint32_t width, const uint32_t height) {
         viewport.Width    = width;
         viewport.Height   = height;
         viewport.TopLeftX = 0.0f;
@@ -410,45 +471,38 @@ public:
     }
     
     template <typename StructType>
-    Buffer createConstantBuffer(StructType* data) {
-        RC_WI_ASSERT(!data, "The data passed to the create constant buffer is not valid!");
-
+    void createConstantBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>* outBuffer, const StructType& inData) {
         HRESULT hr;
 
-        Buffer cbuffer = {};
-		cbuffer.type   = typeid(StructType);
-
         D3D11_BUFFER_DESC cbufferDesc   = {};
-        cbufferDesc.Usage               = D3D11_USAGE_DYNAMIC;          // Default usage (GPU read-only)
-        cbufferDesc.ByteWidth           = sizeof(StructType);           // Size of the constant buffer
-        cbufferDesc.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;   // Bind as constant buffer
-        cbufferDesc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;  
-        cbufferDesc.MiscFlags           = 0;                            // No miscellaneous flags
-        cbufferDesc.StructureByteStride = 0;                            // Not applicable for constant buffers
+        cbufferDesc.Usage               = D3D11_USAGE_DYNAMIC;
+        cbufferDesc.ByteWidth           = sizeof(StructType);
+        cbufferDesc.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;
+        cbufferDesc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+        cbufferDesc.MiscFlags           = 0;
+        cbufferDesc.StructureByteStride = 0;
 
         D3D11_SUBRESOURCE_DATA initData = {};
         initData.SysMemPitch            = 0;
         initData.SysMemSlicePitch       = 0;
-        initData.pSysMem                = data;
+        initData.pSysMem                = &inData;
 
-        hr = this->device->CreateBuffer(&cbufferDesc, &initData, &cbuffer.buffer);
+        hr = this->device->CreateBuffer(&cbufferDesc, &initData, outBuffer->GetAddressOf());
         RC_EI_ASSERT(FAILED(hr), "Failed to create constant buffer.");
-        
-        return cbuffer;
     }
     template <typename StructType>
-    void updateConstantBuffer(Buffer* buff, StructType* data) {
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		this->context->Map(buff->buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    void updateConstantBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer> inBuffer, const StructType& inData) {
+        D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+		this->context->Map(inBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 
-		memcpy(mappedResource.pData, data, sizeof(StructType));
+		memcpy(mappedResource.pData, &inData, sizeof(StructType));
 
-		context->Unmap(buff->buffer.Get(), 0);
+		context->Unmap(inBuffer.Get(), 0);
     }
 
     void VSBindBuffers(std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>>& buffers) {
         if (buffers.empty()) return;
-        context->VSSetConstantBuffers(0, buffers.size(), buffers.data()->GetAddressOf()); // Vertex Shader
+        context->VSSetConstantBuffers(0, buffers.size(), buffers.data()->GetAddressOf());
     }
     void PSBindBuffers(std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>>& buffers) {
         if (buffers.empty()) return;

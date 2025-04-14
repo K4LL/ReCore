@@ -71,93 +71,93 @@ public:
 	}
 
 	void update() {
-		float lookSpeed = 0.5f;
+		//float lookSpeed = 0.5f;
 
-		if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
-			if (!isMouseRotating) {
-				GetCursorPos(&lastMousePos);
-				isMouseRotating = true;
-			}
-			else {
-				// When processing mouse input:
-				POINT currentMousePos;
-				GetCursorPos(&currentMousePos);
+		//if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
+		//	if (!isMouseRotating) {
+		//		GetCursorPos(&lastMousePos);
+		//		isMouseRotating = true;
+		//	}
+		//	else {
+		//		// When processing mouse input:
+		//		POINT currentMousePos;
+		//		GetCursorPos(&currentMousePos);
 
-				float deltaX = ((currentMousePos.x - lastMousePos.x) * lookSpeed) * RCTime::deltaTime();
-				float deltaY = ((currentMousePos.y - lastMousePos.y) * lookSpeed) * RCTime::deltaTime();
-				lastMousePos = currentMousePos;
+		//		float deltaX = ((currentMousePos.x - lastMousePos.x) * lookSpeed) * RCTime::deltaTime();
+		//		float deltaY = ((currentMousePos.y - lastMousePos.y) * lookSpeed) * RCTime::deltaTime();
+		//		lastMousePos = currentMousePos;
 
-				this->eulerAngles.yaw   += deltaX;
-				this->eulerAngles.pitch += deltaY;
+		//		this->eulerAngles.yaw   += deltaX;
+		//		this->eulerAngles.pitch += deltaY;
 
-				const float maxPitch = DirectX::XMConvertToRadians(89.9f);
-				this->eulerAngles.pitch = std::clamp(this->eulerAngles.pitch, -maxPitch, maxPitch);
+		//		const float maxPitch = DirectX::XMConvertToRadians(89.9f);
+		//		this->eulerAngles.pitch = std::clamp(this->eulerAngles.pitch, -maxPitch, maxPitch);
 
-				this->transform.rotation = DirectX::XMQuaternionRotationRollPitchYaw(this->eulerAngles.pitch, this->eulerAngles.yaw, 0.0f);
-				this->transform.rotation = DirectX::XMQuaternionNormalize(this->transform.rotation);
-			}
-		}
-		else {
-			isMouseRotating = false;
-		}
+		//		this->transform.rotation = DirectX::XMQuaternionRotationRollPitchYaw(this->eulerAngles.pitch, this->eulerAngles.yaw, 0.0f);
+		//		this->transform.rotation = DirectX::XMQuaternionNormalize(this->transform.rotation);
+		//	}
+		//}
+		//else {
+		//	isMouseRotating = false;
+		//}
 
-		static float speed;
-		if (speed == 0.0f) {
-			speed = 5.0f;
-		}
+		//static float speed;
+		//if (speed == 0.0f) {
+		//	speed = 5.0f;
+		//}
 
-		DirectX::XMFLOAT4 co;
-		DirectX::XMStoreFloat4(&co, this->transform.rotation);
-		
-		DirectX::XMVECTOR forward = DirectX::XMVector3Rotate(
-			DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), this->transform.rotation
-		);
-		DirectX::XMVECTOR right = DirectX::XMVector3Rotate(
-			DirectX::XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), this->transform.rotation
-		);
+		//DirectX::XMFLOAT4 co;
+		//DirectX::XMStoreFloat4(&co, this->transform.rotation);
+		//
+		//DirectX::XMVECTOR forward = DirectX::XMVector3Rotate(
+		//	DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), this->transform.rotation
+		//);
+		//DirectX::XMVECTOR right = DirectX::XMVector3Rotate(
+		//	DirectX::XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), this->transform.rotation
+		//);
 
-		if (GetAsyncKeyState('W') & 0x8000) {
-			this->transform.position = DirectX::XMVectorAdd(
-				this->transform.position,
-				DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
-			);
-		}		
-		if (GetAsyncKeyState('S') & 0x8000) {
-			this->transform.position = DirectX::XMVectorSubtract(
-				this->transform.position,
-				DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
-			);
-		}		
-		if (GetAsyncKeyState('A') & 0x8000) {
-			this->transform.position = DirectX::XMVectorAdd(
-				this->transform.position,
-				DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
-			);
-		}		
-		if (GetAsyncKeyState('D') & 0x8000) {
-			this->transform.position = DirectX::XMVectorSubtract(
-				this->transform.position,
-				DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
-			);
-		}		
-		if (GetAsyncKeyState('E') & 0x8000) {
-			this->transform.position = DirectX::XMVectorAdd(
-				this->transform.position,
-				DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
-			);
-		}		
-		if (GetAsyncKeyState('Q') & 0x8000) {
-			this->transform.position = DirectX::XMVectorSubtract(
-				this->transform.position,
-				DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
-			);
-		}	
-		if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) {
-			speed = 50.0f;
-		}
-		else {
-			speed = 5.0f;
-		}
+		//if (GetAsyncKeyState('W') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorAdd(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
+		//	);
+		//}		
+		//if (GetAsyncKeyState('S') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorSubtract(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(forward, speed * RCTime::deltaTime())
+		//	);
+		//}		
+		//if (GetAsyncKeyState('A') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorAdd(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
+		//	);
+		//}		
+		//if (GetAsyncKeyState('D') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorSubtract(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(right, speed * RCTime::deltaTime())
+		//	);
+		//}		
+		//if (GetAsyncKeyState('E') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorAdd(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
+		//	);
+		//}		
+		//if (GetAsyncKeyState('Q') & 0x8000) {
+		//	this->transform.position = DirectX::XMVectorSubtract(
+		//		this->transform.position,
+		//		DirectX::XMVectorScale(this->upVector, speed * RCTime::deltaTime())
+		//	);
+		//}	
+		//if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) {
+		//	speed = 50.0f;
+		//}
+		//else {
+		//	speed = 5.0f;
+		//}
 
 		DirectX::XMVECTOR rotatedForward = DirectX::XMVector3Rotate(
 			DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), this->transform.rotation

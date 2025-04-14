@@ -22,8 +22,12 @@ void Renderer::build(ObjectsManager* objectsManager, Window* window, GuiManager*
 	this->camera = new Camera(this->window);
 }
 
-Mesh Renderer::createMesh(std::vector<Vertex>& vertices, std::vector<DWORD>& indices) {
-	return this->handler->createVertexArrayBuffer(vertices, indices);
+Mesh Renderer::createMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+	Mesh mesh = {};
+	this->handler->createVertexArrayBuffer(&mesh.vertexArrayBuffer, &mesh.vertices, &mesh.vertexInitData, vertices);
+	this->handler->createIndexArrayBuffer(&mesh.indexArrayBuffer, &mesh.indices, &mesh.indexInitData, indices);
+	
+	return mesh;
 }
 Mesh Renderer::createMesh(const char* path) {
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
@@ -34,7 +38,7 @@ Mesh Renderer::createMesh(const char* path) {
 	aiMesh* mesh = scene->mMeshes[0];
 
 	std::vector<Vertex> vertices;
-	std::vector<DWORD>  indices;
+	std::vector<uint32_t>  indices;
 
 	std::thread verticesThread([&]() {
 		vertices.reserve(mesh->mNumVertices);
@@ -67,7 +71,7 @@ Mesh Renderer::createMesh(const char* path) {
 	verticesThread.join();
 	indicesThread.join();
 
-	Mesh retVal = this->handler->createVertexArrayBuffer(vertices, indices);
+	Mesh retVal = this->createMesh(vertices, indices);
 	retVal.path = path;
 
 	return retVal;
@@ -87,26 +91,25 @@ Texture Renderer::createTexture(const char* path) {
 
 	this->handler->createShaderResourceView(&texture.texture, texture2D);
 	texture.image = std::move(imageData);
-
-	texture.path = path;
+	texture.path  = path;
 
 	return texture;
 }
 
-Model Renderer::createModel(std::vector<Vertex>& vertices,
-	std::vector<DWORD>& indices,
-	const char* vertexShaderSource,
-	const char* pixelShaderSource,
-	const char* texturePath)
+Model Renderer::createModel(const std::vector<Vertex>&   vertices,
+							const std::vector<uint32_t>& indices,
+							const char*					 vertexShaderSource,
+							const char*					 pixelShaderSource,
+							const char*					 texturePath)
 {
 	Shader  shader = this->handler->createShadersFromSource(vertexShaderSource, pixelShaderSource);
-	Mesh    mesh   = this->handler->createVertexArrayBuffer(vertices, indices);
+	Mesh    mesh   = this->createMesh(vertices, indices);
 	Texture tex    = this->createTexture(texturePath);
 
 	Model model   = {};
-	model.mesh    = std::move(mesh);
-	model.shader  = std::move(shader);
-	model.texture = std::move(tex);
+	model.mesh    = std::make_unique<Mesh>(std::move(mesh));
+	model.shader  = std::make_unique<Shader>(std::move(shader));
+	model.texture = std::make_unique<Texture>(std::move(tex));
 
 	return model;
 }
@@ -119,11 +122,10 @@ Model Renderer::createModel(const char* path,
 	Mesh    mesh   = this->createMesh(path);
 	Texture tex    = this->createTexture(texturePath);
 
-
 	Model model   = {};
-	model.mesh    = std::move(mesh);
-	model.shader  = std::move(shader);
-	model.texture = std::move(tex);
+	model.mesh    = std::make_unique<Mesh>(std::move(mesh));
+	model.shader  = std::make_unique<Shader>(std::move(shader));
+	model.texture = std::make_unique<Texture>(std::move(tex));
 
 	return model;
 }
@@ -227,7 +229,13 @@ Model Renderer::getTemplate(const ModelTemplate t, void* params) {
 		)";
 
 		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
-		Model model                = this->createModel(desc->modelPath, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		Model model = {};
+		if (desc->modelPath) {
+			model = this->createModel(desc->modelPath, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		}
+		else {
+			model = this->createModel(desc->vertices, desc->indices, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		}
 
 		auto& p = this->camera->transform.rotation;
 		this->createBuffer<DirectX::XMVECTOR>(&model, PipelineStage::VertexStage, p, "cameraRotation");
@@ -249,8 +257,8 @@ void Renderer::createGlobalLight() {
 	globalLight.direction   = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
 	globalLight.intensity   = 1.0f;
 
-	this->scene.globalLightData   = globalLight;
-	this->scene.globalLightBuffer = this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightData);
+	this->scene.globalLightData = globalLight;
+	this->handler->createConstantBuffer<GlobalLight>(&this->scene.globalLightBuffer.buffer, this->scene.globalLightData);
 }
 
 void Renderer::clearScreen() {
@@ -262,15 +270,17 @@ void Renderer::render() {
 
 	this->objectsManager->get<std::unique_ptr<Model>>()
 		.for_each([this](std::unique_ptr<Model>& model) {
+		auto* modelPtr = model.get();
+
 		DirectX::XMFLOAT3 position;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 
-		DirectX::XMStoreFloat3(&position, model.get()->transform.position);
-		DirectX::XMStoreFloat4(&rotation, model.get()->transform.rotation);
-		DirectX::XMStoreFloat3(&scale, model.get()->transform.scale);
+		DirectX::XMStoreFloat3(&position, modelPtr->transform.position);
+		DirectX::XMStoreFloat4(&rotation, modelPtr->transform.rotation);
+		DirectX::XMStoreFloat3(&scale, modelPtr->transform.scale);
 
-		auto& transform = model.get()->transform;
+		auto& transform = modelPtr->transform;
 
 		DirectX::XMMATRIX scaleMatrix    = DirectX::XMMatrixScalingFromVector(transform.scale);
 		DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(transform.rotation);
@@ -282,33 +292,39 @@ void Renderer::render() {
 		fm.model      = DirectX::XMMatrixTranspose(transform.model);
 		fm.projection = DirectX::XMMatrixTranspose(this->camera->projectionMatrix);
 		fm.view       = DirectX::XMMatrixTranspose(this->camera->viewMatrix);
-		Buffer cbuffer = Renderer::handler->createConstantBuffer<FrameData>(&fm);
+
+		Buffer cbuffer; 
+		Renderer::handler->createConstantBuffer<FrameData>(&cbuffer.buffer, fm);
 
 		struct AlignedScale {
 			DirectX::XMFLOAT3 scale;
 			float             padding = 0.0f;
 		} ascale;
-		DirectX::XMStoreFloat3(&ascale.scale, model.get()->transform.scale);
+		DirectX::XMStoreFloat3(&ascale.scale, modelPtr->transform.scale);
 
-		Buffer scaleBuffer = Renderer::handler->createConstantBuffer<AlignedScale>(&ascale);
+		Buffer scaleBuffer;
+		Renderer::handler->createConstantBuffer<AlignedScale>(&scaleBuffer.buffer, ascale);
 
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> VSBuffers = { cbuffer.buffer };
 		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> PSBuffers = { this->scene.globalLightBuffer.buffer, scaleBuffer.buffer };
 
-		for (uint32_t i = 0; i < model.get()->buffers.size(); i++) {
-			if (model.get()->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(model.get()->buffers[i].buffer);
-			else PSBuffers.push_back(model.get()->buffers[i].buffer);
+		for (uint32_t i = 0; i < modelPtr->buffers.size(); i++) {
+			if (modelPtr->buffers[i].stage == PipelineStage::VertexStage) VSBuffers.push_back(modelPtr->buffers[i].buffer);
+			else PSBuffers.push_back(modelPtr->buffers[i].buffer);
 		}
 		this->handler->VSBindBuffers(VSBuffers);
 		this->handler->PSBindBuffers(PSBuffers);
 
-		this->handler->bindShaderResource(model.get()->texture.texture);
+		this->handler->bindShaderResource(modelPtr->texture.get()->texture);
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
 		this->handler->createSamplerState(&samplerState);
 		this->handler->bindSamplerState(samplerState);
 
-		this->handler->render(model.get()->shader, model.get()->mesh);
+		auto* shader = modelPtr->shader.get();
+		auto* mesh   = modelPtr->mesh.get();
+		this->handler->render(shader->vertexShader, shader->pixelShader, shader->inputLayout,
+							  mesh->vertexArrayBuffer, mesh->indexArrayBuffer, mesh->indices.size());
 	});
 
 	guiManager->render();
@@ -320,4 +336,23 @@ void Renderer::present() {
 void Renderer::toQueue(Model&& model) {
 	std::unique_ptr<Model> ptr = std::make_unique<Model>(std::move(model));
 	this->objectsManager->createEntity(std::move(ptr));
+}
+void Renderer::removeModel(const size_t index) {
+	this->objectsManager->destroyEntity<Model>(index);
+}
+void Renderer::removeModel(const std::string& name) {
+	this->objectsManager->get<Model>()
+		.for_indexed([&](int i, Model& model) {
+		if (model.name == name) {
+			this->objectsManager->destroyEntity<Model>(i);
+		}
+		});
+}
+void Renderer::removeModel(const Model* ptr) {
+	this->objectsManager->get<std::unique_ptr<Model>>()
+		.for_indexed([&](int i, std::unique_ptr<Model>& model) {
+		if (model.get() == ptr) {
+			this->objectsManager->destroyEntity<std::unique_ptr<Model>>(i);
+		}
+		});
 }

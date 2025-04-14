@@ -16,10 +16,10 @@ struct Transform {
     DirectX::XMMATRIX model;
 
     Transform() { 
-        this->position = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f); // Default position
-        this->scale    = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f); // Default scale
-        this->rotation = DirectX::XMQuaternionIdentity();              // No rotation
-        this->model    = DirectX::XMMatrixIdentity();                  // Identity matrix
+        this->position = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        this->scale    = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
+        this->rotation = DirectX::XMQuaternionIdentity();
+        this->model    = DirectX::XMMatrixIdentity();
     }
 };
 
@@ -42,8 +42,8 @@ struct Mesh {
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexArrayBuffer;
     D3D11_SUBRESOURCE_DATA indexInitData;
 
-    std::vector<Vertex> vertices;
-    std::vector<DWORD>  indices;
+    std::vector<Vertex>   vertices;
+    std::vector<uint32_t> indices;
 
     std::string path;
 };
@@ -59,16 +59,16 @@ struct Texture {
 
 struct Buffer {
     Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
-    std::type_index                      type = typeid(void);
     std::string                          name;
 	PipelineStage                        stage;
 };
 
 struct Model {
-    Transform transform;
-    Mesh      mesh;
-    Shader    shader;
-    Texture   texture;
+    Transform                  transform;
+    std::unique_ptr<Mesh>      mesh;
+    std::unique_ptr<Shader>    shader;
+    std::unique_ptr<Texture>   texture;
 
     std::vector<Buffer> buffers;
+    std::string         name;
 };

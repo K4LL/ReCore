@@ -1,7 +1,7 @@
 #include "RCTime.h"
 
-float RCTime::currentTime = 0.0f;
-float RCTime::lastTime    = 0.0f;
+size_t RCTime::currentTime = 0.0f;
+size_t RCTime::lastTime    = 0.0f;
 
 void RCTime::startUpdate() {
 	RCTime::currentTime = GetTickCount64();

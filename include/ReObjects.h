@@ -15,13 +15,17 @@ private:
 
 public:
     void build(FlexibleVector<>* ptr, ThreadPool* threads) {
-        this->ptr = ptr;
+        this->ptr     = ptr;
         this->threads = threads;
     }
 
     Ty* at(const size_t idx) {
         return this->ptr->at<Ty>(idx);
     }
+    Ty* back() {
+		return this->ptr->at<Ty>(this->ptr->size() - 1);
+    }
+
     const size_t size() const { return this->ptr->size(); }
 
     EntitiesQuery& for_each(const std::function<void(Ty&)>& fun) {
@@ -110,6 +114,21 @@ public:
 
         this->storage.insert({ typeid(Ty), std::move(group) });
     }
+
+	template <typename Ty>
+	void destroyEntity(Ty* entity) {
+		auto it = this->storage.find(typeid(Ty));
+		if (it == this->storage.end()) return;
+
+		it->second.erase<Ty>(entity);
+	}
+	template <typename Ty>
+	void destroyEntity(const size_t idx) {
+		auto it = this->storage.find(typeid(Ty));
+		if (it == this->storage.end()) return;
+
+		it->second.erase<Ty>(it->second.begin<Ty>() + idx);
+	}
 
     template <typename Ty>
     EntitiesQuery<Ty> get() {

@@ -4,8 +4,8 @@
 
 class RCTime {
 private:
-	static float currentTime;
-	static float lastTime;
+	static size_t currentTime;
+	static size_t lastTime;
 
 public:	
 	static void startUpdate();
