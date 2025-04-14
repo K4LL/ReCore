@@ -7,6 +7,8 @@
 #include "InputManager.h"
 #include "DebugConsole.h"
 
+#include <any>
+
 struct WindowDescription {
 	const wchar_t* windowName;
 	int            width;
@@ -29,6 +31,9 @@ private:
 	std::unique_ptr<InputManager>   inputManager;
 	std::unique_ptr<ThreadPool>     scheduler;
 
+	std::unordered_map<std::type_index, void*> additionalManagers;
+	std::vector<void*>                         additionalManagersPtrs;
+
 	std::chrono::steady_clock::time_point startTime;
 	std::chrono::steady_clock::time_point endTime;
 	
@@ -39,6 +44,8 @@ private:
 public:
 	~EngineCore() {
 		DebugConsole::del();
+
+		std::destroy(additionalManagersPtrs.begin(), additionalManagersPtrs.end());
 	}
 
 	void build(const  WindowDescription		    windowDescription,
@@ -64,6 +71,25 @@ public:
 
 		RCStreamBuffer coutBuffer(std::cout, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 		RCStreamBuffer cerrBuffer(std::cerr, FOREGROUND_RED | FOREGROUND_INTENSITY);
+	}
+
+	template <typename Ty, typename... Args>
+	void createManager(Args... args) {
+		Ty*   element       = new Ty();
+		void* castedElement = static_cast<void*>(element);
+
+		this->additionalManagers.emplace(std::type_index(typeid(Ty)), castedElement);
+		this->additionalManagersPtrs.push_back(castedElement);
+		element->build(std::forward<Args>(args)...);
+	}
+	template <typename Ty>
+	Ty* getManager() {
+		auto it = this->additionalManagers.find(std::type_index(typeid(Ty)));
+		if (it == this->additionalManagers.end()) {
+			RC_DBG_LOG("Manager not found!");
+			return nullptr;
+		}
+		return static_cast<Ty*>(it->second);
 	}
 
 	void setMainLoop(std::function<void()> updateFunction, const int targetFPS) {

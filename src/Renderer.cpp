@@ -229,7 +229,13 @@ Model Renderer::getTemplate(const ModelTemplate t, void* params) {
 		)";
 
 		BillboardDescription* desc = reinterpret_cast<BillboardDescription*>(params);
-		Model model                = this->createModel(desc->modelPath, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		Model model = {};
+		if (desc->modelPath) {
+			model = this->createModel(desc->modelPath, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		}
+		else {
+			model = this->createModel(desc->vertices, desc->indices, BillboardVertexShaderSource, BillboardPixelShaderSource, desc->texturePath);
+		}
 
 		auto& p = this->camera->transform.rotation;
 		this->createBuffer<DirectX::XMVECTOR>(&model, PipelineStage::VertexStage, p, "cameraRotation");
@@ -330,4 +336,23 @@ void Renderer::present() {
 void Renderer::toQueue(Model&& model) {
 	std::unique_ptr<Model> ptr = std::make_unique<Model>(std::move(model));
 	this->objectsManager->createEntity(std::move(ptr));
+}
+void Renderer::removeModel(const size_t index) {
+	this->objectsManager->destroyEntity<Model>(index);
+}
+void Renderer::removeModel(const std::string& name) {
+	this->objectsManager->get<Model>()
+		.for_indexed([&](int i, Model& model) {
+		if (model.name == name) {
+			this->objectsManager->destroyEntity<Model>(i);
+		}
+		});
+}
+void Renderer::removeModel(const Model* ptr) {
+	this->objectsManager->get<std::unique_ptr<Model>>()
+		.for_indexed([&](int i, std::unique_ptr<Model>& model) {
+		if (model.get() == ptr) {
+			this->objectsManager->destroyEntity<std::unique_ptr<Model>>(i);
+		}
+		});
 }

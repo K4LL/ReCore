@@ -35,8 +35,10 @@ enum class ModelTemplate {
 	Billboard,
 };
 struct BillboardDescription {
-	const char* modelPath;
-	const char* texturePath;
+	const char*			  modelPath;
+	const char*			  texturePath;
+	std::vector<Vertex>   vertices;
+	std::vector<uint32_t> indices;
 };
 
 class Renderer {
@@ -77,9 +79,9 @@ public:
 
 	Model createModel(const std::vector<Vertex>&    vertices, 
 					  const std::vector<uint32_t>&  indices,
-					  const char*             vertexShaderSource, 
-					  const char*		      pixelShaderSource,
-					  const char*             texturePath);
+					  const char*                   vertexShaderSource, 
+					  const char*					pixelShaderSource,
+					  const char*					texturePath);
 	Model createModel(const char* path,
 					  const char* vertexShaderSource, 
 					  const char* pixelShaderSource,
@@ -108,4 +110,7 @@ public:
 	void present();
 
 	void toQueue(Model&& model);
+	void removeModel(const size_t index);
+	void removeModel(const std::string& name);
+	void removeModel(const Model* model);
 };

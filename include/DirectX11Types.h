@@ -16,10 +16,10 @@ struct Transform {
     DirectX::XMMATRIX model;
 
     Transform() { 
-        this->position = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f); // Default position
-        this->scale    = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f); // Default scale
-        this->rotation = DirectX::XMQuaternionIdentity();              // No rotation
-        this->model    = DirectX::XMMatrixIdentity();                  // Identity matrix
+        this->position = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        this->scale    = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
+        this->rotation = DirectX::XMQuaternionIdentity();
+        this->model    = DirectX::XMMatrixIdentity();
     }
 };
 
@@ -70,4 +70,5 @@ struct Model {
     std::unique_ptr<Texture>   texture;
 
     std::vector<Buffer> buffers;
+    std::string         name;
 };
